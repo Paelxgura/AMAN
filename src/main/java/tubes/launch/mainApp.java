@@ -5,14 +5,14 @@ import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
-// Import untuk backend
+
 import tubes.backend.DatabaseManager; // Penting untuk inisialisasiDatabase
 import tubes.backend.EmailService;
 import tubes.backend.Notifikasi;
 import tubes.backend.PengelolaTugas;
 import tubes.backend.Tugas; // Import Tugas jika digunakan di parameter switchScene
 
-// Import untuk pages
+
 import tubes.pages.EditSchedule;
 import tubes.pages.LogInPage;
 import tubes.pages.SchedulePage;
@@ -38,11 +38,11 @@ public class mainApp extends Application {
     public void start(Stage stage) {
         this.stage = stage;
 
-        // Initialize backend services
+
         pengelolaTugas = new PengelolaTugas();
 
-        // PANGGIL INISIALISASI DATABASE DI SINI!
-        inisialisasiDatabase(); // Memastikan tabel dibuat jika belum ada
+  
+        inisialisasiDatabase();
 
         // Example SMTP config - replace with your actual config or load from a file
         HashMap<String, String> smtpConfig = new HashMap<>();
@@ -66,10 +66,6 @@ public class mainApp extends Application {
         stage.show();
     }
 
-    /**
-     * Metode untuk menginisialisasi skema database (membuat tabel jika belum ada).
-     * Ini penting untuk SQLite agar tabel siap digunakan.
-     */
     private void inisialisasiDatabase() {
         System.out.println("Memulai proses inisialisasi database SQLite...");
 
