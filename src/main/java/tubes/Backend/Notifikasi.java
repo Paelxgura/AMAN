@@ -1,4 +1,4 @@
-package tubes.Backend;
+package tubes.backend;
 
 import java.time.LocalDateTime;
 

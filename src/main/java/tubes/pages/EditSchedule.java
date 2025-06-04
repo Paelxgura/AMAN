@@ -12,9 +12,8 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontPosture;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.TextAlignment; // Ditambahkan jika belum ada
-
+import tubes.backend.Tugas;
 import tubes.launch.mainApp;
-import tubes.Backend.Tugas; // IMPORT Tugas dari backend
 
 import java.time.LocalDate;
 import java.time.LocalTime;

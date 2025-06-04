@@ -1,12 +1,12 @@
-package tubes.Backend;
+package tubes.backend;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -20,20 +20,9 @@ public class PengelolaTugas {
         this.currentUser = null;
     }
 
-    // --- User Management ---
 
-    /**
-     * Mendaftarkan akun pengguna baru ke database.
-     * PENTING: Password harus di-hash sebelum disimpan di aplikasi produksi.
-     * @param username Username.
-     * @param email Email.
-     * @param sandi Password (plain text, akan disimpan apa adanya untuk contoh ini).
-     * @return Objek User jika berhasil, null jika gagal (misal username/email sudah ada).
-     */
     public User daftarAkun(String username, String email, String sandi) {
-        // Di aplikasi nyata, HASH passwordnya DI SINI sebelum disimpan
-        // Contoh: String hashedPassword = PasswordHasher.hash(sandi);
-        // Kemudian simpan hashedPassword, bukan sandi.
+
 
         String sqlCheck = "SELECT id FROM users WHERE username = ? OR email = ?";
         String sqlInsert = "INSERT INTO users (username, email, sandi) VALUES (?, ?, ?)";
@@ -46,7 +35,10 @@ public class PengelolaTugas {
 
         try {
             conn = DatabaseManager.getConnection();
-            if (conn == null) return null;
+            if (conn == null) {
+                System.err.println("Daftar akun gagal: Tidak bisa mendapatkan koneksi database.");
+                return null;
+            }
 
             // 1. Cek apakah username atau email sudah ada
             pstmtCheck = conn.prepareStatement(sqlCheck);
@@ -55,10 +47,13 @@ public class PengelolaTugas {
             rsCheck = pstmtCheck.executeQuery();
             if (rsCheck.next()) {
                 System.out.println("Username atau email sudah terdaftar.");
-                return null; // Username atau email sudah ada
+                return null; 
             }
-            DatabaseManager.closeResultSet(rsCheck); // Tutup ResultSet dari pengecekan
-            DatabaseManager.closeStatement(pstmtCheck); // Tutup PreparedStatement dari pengecekan
+            // Penting untuk menutup resource setelah digunakan, bahkan sebelum try-finally utama
+            DatabaseManager.closeResultSet(rsCheck); 
+            rsCheck = null; // Set ke null setelah ditutup
+            DatabaseManager.closeStatement(pstmtCheck);
+            pstmtCheck = null; // Set ke null setelah ditutup
 
 
             // 2. Jika belum ada, lakukan insert
@@ -79,11 +74,12 @@ public class PengelolaTugas {
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Error saat mendaftarkan akun: " + e.getMessage());
+            System.err.println("Error SQL saat mendaftarkan akun: " + e.getMessage());
             e.printStackTrace();
         } finally {
-            DatabaseManager.closeResultSet(rsCheck); // Pastikan ditutup lagi di finally
-            DatabaseManager.closeStatement(pstmtCheck); // Pastikan ditutup lagi di finally
+            // Pastikan semua resource yang mungkin dibuka ditutup
+            DatabaseManager.closeResultSet(rsCheck); 
+            DatabaseManager.closeStatement(pstmtCheck); 
             DatabaseManager.closeResultSet(generatedKeys);
             DatabaseManager.closeStatement(pstmtInsert);
             DatabaseManager.closeConnection(conn);
@@ -91,12 +87,6 @@ public class PengelolaTugas {
         return null;
     }
 
-    /**
-     * Melakukan login pengguna.
-     * @param usernameOrEmail Username atau Email pengguna.
-     * @param sandiInput Password yang dimasukkan pengguna.
-     * @return true jika login berhasil, false jika tidak.
-     */
     public boolean masukSistem(String usernameOrEmail, String sandiInput) {
         String sql = "SELECT id, username, email, sandi FROM users WHERE username = ? OR email = ?";
         Connection conn = null;
@@ -105,11 +95,14 @@ public class PengelolaTugas {
 
         try {
             conn = DatabaseManager.getConnection();
-            if (conn == null) return false;
+            if (conn == null) {
+                System.err.println("Login gagal: Tidak bisa mendapatkan koneksi database.");
+                return false;
+            }
 
             pstmt = conn.prepareStatement(sql);
-            pstmt.setString(1, usernameOrEmail); // Bisa username
-            pstmt.setString(2, usernameOrEmail); // Atau email
+            pstmt.setString(1, usernameOrEmail); 
+            pstmt.setString(2, usernameOrEmail); 
 
             rs = pstmt.executeQuery();
 
@@ -121,10 +114,11 @@ public class PengelolaTugas {
                             rs.getInt("id"),
                             rs.getString("username"),
                             rs.getString("email"),
-                            sandiDariDB // Simpan sandi (hash) dari DB ke objek User
+                            sandiDariDB 
                     );
                     // Muat tugas untuk user yang login setelah berhasil login
-                    this.currentUser.setDaftarTugas(getTugasByUserId(this.currentUser.getId(), conn));
+                    // Melewatkan 'conn' ke getTugasByUserId agar tidak membuka koneksi baru jika tidak perlu
+                    this.currentUser.setDaftarTugas(getTugasByUserId(this.currentUser.getId(), conn)); 
                     System.out.println("User " + this.currentUser.getUsername() + " berhasil login.");
                     return true;
                 } else {
@@ -134,14 +128,17 @@ public class PengelolaTugas {
                 System.out.println("Username/Email tidak ditemukan: " + usernameOrEmail);
             }
         } catch (SQLException e) {
-            System.err.println("Error saat login: " + e.getMessage());
+            System.err.println("Error SQL saat login: " + e.getMessage());
             e.printStackTrace();
         } finally {
             DatabaseManager.closeResultSet(rs);
             DatabaseManager.closeStatement(pstmt);
-            DatabaseManager.closeConnection(conn); // Koneksi ditutup setelah selesai operasi login
+            // Koneksi ditutup setelah selesai operasi login (atau setelah getTugasByUserId jika dipass)
+            // Jika getTugasByUserId menggunakan koneksi yang sama, koneksi ditutup oleh pemanggil terluar.
+            // Untuk kasus ini, karena getTugasByUserId dipanggil di sini, kita tutup koneksi di sini.
+            DatabaseManager.closeConnection(conn); 
         }
-        this.currentUser = null; // Pastikan currentUser null jika login gagal
+        this.currentUser = null; 
         return false;
     }
 
@@ -158,10 +155,6 @@ public class PengelolaTugas {
 
     // --- Task Management ---
 
-    /**
-     * Membuat tugas baru dan menyimpannya ke database.
-     * @return Objek Tugas jika berhasil, null jika gagal.
-     */
     public Tugas buatTugas(String judul, String deskripsi, LocalDateTime tanggalBatas, String kategori, String lokasi, String mataKuliah) {
         if (currentUser == null) {
             System.err.println("Tidak ada user yang login untuk membuat tugas.");
@@ -176,17 +169,29 @@ public class PengelolaTugas {
 
         try {
             conn = DatabaseManager.getConnection();
-            if (conn == null) return null;
+            if (conn == null) {
+                 System.err.println("Buat tugas gagal: Tidak bisa mendapatkan koneksi database.");
+                return null;
+            }
 
             pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             pstmt.setInt(1, currentUser.getId());
             pstmt.setString(2, judul);
             pstmt.setString(3, deskripsi);
-            pstmt.setTimestamp(4, (tanggalBatas != null) ? Timestamp.valueOf(tanggalBatas) : null);
+
+            // PENYESUAIAN UNTUK SQLITE: LocalDateTime -> TEXT (String ISO-8601)
+            if (tanggalBatas != null) {
+                pstmt.setString(4, tanggalBatas.toString()); 
+            } else {
+                pstmt.setNull(4, java.sql.Types.VARCHAR); 
+            }
+
             pstmt.setString(5, kategori);
             pstmt.setString(6, lokasi);
             pstmt.setString(7, mataKuliah);
-            pstmt.setBoolean(8, false); // Default 'selesai' adalah false untuk tugas baru
+
+            // PENYESUAIAN UNTUK SQLITE: boolean -> INTEGER (0 untuk false, 1 untuk true)
+            pstmt.setInt(8, 0); // Default 'selesai' adalah false (0) untuk tugas baru
 
             int affectedRows = pstmt.executeUpdate();
 
@@ -194,8 +199,9 @@ public class PengelolaTugas {
                 generatedKeys = pstmt.getGeneratedKeys();
                 if (generatedKeys.next()) {
                     int newTaskId = generatedKeys.getInt(1);
+                    // Pastikan konstruktor Tugas sesuai
                     Tugas tugasBaru = new Tugas(newTaskId, currentUser.getId(), judul, deskripsi, tanggalBatas, kategori, lokasi, mataKuliah, false);
-                    if (this.currentUser.getDaftarTugas() != null) { // Pastikan list tidak null
+                    if (this.currentUser.getDaftarTugas() != null) { 
                         this.currentUser.tambahTugas(tugasBaru);
                     }
                     System.out.println("Tugas '" + judul + "' berhasil dibuat untuk user " + currentUser.getUsername() + " dengan ID: " + newTaskId);
@@ -203,7 +209,7 @@ public class PengelolaTugas {
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Error saat membuat tugas: " + e.getMessage());
+            System.err.println("Error SQL saat membuat tugas: " + e.getMessage());
             e.printStackTrace();
         } finally {
             DatabaseManager.closeResultSet(generatedKeys);
@@ -213,10 +219,6 @@ public class PengelolaTugas {
         return null;
     }
 
-    /**
-     * Mengubah data tugas yang ada di database.
-     * @return true jika berhasil, false jika gagal.
-     */
     public boolean ubahTugas(int idTugas, String judul, String deskripsi, LocalDateTime tanggalBatas, String kategori, String lokasi, String mataKuliah, boolean selesai) {
         if (currentUser == null) {
             System.err.println("Tidak ada user yang login untuk mengubah tugas.");
@@ -230,22 +232,34 @@ public class PengelolaTugas {
 
         try {
             conn = DatabaseManager.getConnection();
-            if (conn == null) return false;
+            if (conn == null) {
+                System.err.println("Ubah tugas gagal: Tidak bisa mendapatkan koneksi database.");
+                return false;
+            }
 
             pstmt = conn.prepareStatement(sql);
             pstmt.setString(1, judul);
             pstmt.setString(2, deskripsi);
-            pstmt.setTimestamp(3, (tanggalBatas != null) ? Timestamp.valueOf(tanggalBatas) : null);
+
+            // PENYESUAIAN UNTUK SQLITE: LocalDateTime -> TEXT
+            if (tanggalBatas != null) {
+                pstmt.setString(3, tanggalBatas.toString());
+            } else {
+                pstmt.setNull(3, java.sql.Types.VARCHAR);
+            }
+
             pstmt.setString(4, kategori);
             pstmt.setString(5, lokasi);
             pstmt.setString(6, mataKuliah);
-            pstmt.setBoolean(7, selesai);
+
+            // PENYESUAIAN UNTUK SQLITE: boolean -> INTEGER
+            pstmt.setInt(7, selesai ? 1 : 0); 
+
             pstmt.setInt(8, idTugas);
-            pstmt.setInt(9, currentUser.getId()); // Pastikan hanya tugas milik user yang diubah
+            pstmt.setInt(9, currentUser.getId());
 
             int affectedRows = pstmt.executeUpdate();
             if (affectedRows > 0) {
-                // Update juga di list currentUser jika perlu
                 if (this.currentUser.getDaftarTugas() != null) {
                     this.currentUser.getDaftarTugas().stream()
                         .filter(t -> t.getId() == idTugas)
@@ -266,7 +280,7 @@ public class PengelolaTugas {
                 System.err.println("Gagal mengubah tugas: Tugas ID " + idTugas + " tidak ditemukan atau bukan milik user.");
             }
         } catch (SQLException e) {
-            System.err.println("Error saat mengubah tugas: " + e.getMessage());
+            System.err.println("Error SQL saat mengubah tugas: " + e.getMessage());
             e.printStackTrace();
         } finally {
             DatabaseManager.closeStatement(pstmt);
@@ -275,11 +289,6 @@ public class PengelolaTugas {
         return false;
     }
     
-    /**
-     * Menghapus tugas dari database.
-     * @param idTugas ID tugas yang akan dihapus.
-     * @return true jika berhasil, false jika gagal.
-     */
     public boolean hapusTugas(int idTugas) {
         if (currentUser == null) {
             System.err.println("Tidak ada user yang login untuk menghapus tugas.");
@@ -292,7 +301,10 @@ public class PengelolaTugas {
 
         try {
             conn = DatabaseManager.getConnection();
-            if (conn == null) return false;
+            if (conn == null) {
+                System.err.println("Hapus tugas gagal: Tidak bisa mendapatkan koneksi database.");
+                return false;
+            }
 
             pstmt = conn.prepareStatement(sql);
             pstmt.setInt(1, idTugas);
@@ -309,7 +321,7 @@ public class PengelolaTugas {
                  System.err.println("Gagal menghapus tugas: Tugas ID " + idTugas + " tidak ditemukan atau bukan milik user.");
             }
         } catch (SQLException e) {
-            System.err.println("Error saat menghapus tugas: " + e.getMessage());
+            System.err.println("Error SQL saat menghapus tugas: " + e.getMessage());
             e.printStackTrace();
         } finally {
             DatabaseManager.closeStatement(pstmt);
@@ -318,40 +330,33 @@ public class PengelolaTugas {
         return false;
     }
 
-    /**
-     * Mengambil semua tugas milik user yang sedang login dari database.
-     * @return List Tugas.
-     */
     public List<Tugas> getTugasCurrentUser() {
         if (currentUser == null) {
             return new ArrayList<>();
         }
-        // Selalu ambil dari DB untuk data terbaru
         List<Tugas> tugasDariDB = getTugasByUserId(currentUser.getId(), null);
-        // Update list di objek currentUser agar sinkron
         currentUser.setDaftarTugas(tugasDariDB);
         return tugasDariDB;
     }
 
-    /**
-     * Metode helper untuk mengambil tugas berdasarkan userId.
-     * Jika existingConn null, akan membuat koneksi baru dan menutupnya.
-     * Jika existingConn ada, tidak akan menutup koneksi tersebut (berguna untuk transaksi atau operasi berantai).
-     */
     private List<Tugas> getTugasByUserId(int userId, Connection existingConn) {
         List<Tugas> daftarTugasUser = new ArrayList<>();
-        String sql = "SELECT id, judul, deskripsi, tanggal_batas, kategori, lokasi, mata_kuliah, selesai " +
-                     "FROM tasks WHERE user_id = ? ORDER BY tanggal_batas ASC, id DESC"; // Urutkan
+        // Pastikan kolom user_id ada di SELECT jika akan digunakan dari ResultSet
+        String sql = "SELECT id, user_id, judul, deskripsi, tanggal_batas, kategori, lokasi, mata_kuliah, selesai " +
+                     "FROM tasks WHERE user_id = ? ORDER BY tanggal_batas ASC, id DESC";
         
         Connection conn = existingConn;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
-        boolean closeConnHere = false; // Flag apakah koneksi dibuat di metode ini
+        boolean closeConnHere = false; 
 
         try {
-            if (conn == null || conn.isClosed()) { // Jika tidak ada koneksi aktif, buat baru
+            if (conn == null || conn.isClosed()) { 
                 conn = DatabaseManager.getConnection();
-                if (conn == null) return daftarTugasUser; // Kembalikan list kosong jika koneksi gagal
+                if (conn == null) {
+                    System.err.println("Ambil tugas gagal: Tidak bisa mendapatkan koneksi database.");
+                    return daftarTugasUser;
+                }
                 closeConnHere = true;
             }
 
@@ -360,49 +365,56 @@ public class PengelolaTugas {
             rs = pstmt.executeQuery();
 
             while (rs.next()) {
-                Timestamp ts = rs.getTimestamp("tanggal_batas");
-                LocalDateTime tanggalBatas = (ts != null) ? ts.toLocalDateTime() : null;
+                // PENYESUAIAN UNTUK SQLITE: TEXT (String ISO-8601) -> LocalDateTime
+                String tanggalBatasStr = rs.getString("tanggal_batas");
+                LocalDateTime tglBatasObj = null;
+                if (tanggalBatasStr != null && !tanggalBatasStr.isEmpty()) {
+                    try {
+                        tglBatasObj = LocalDateTime.parse(tanggalBatasStr); 
+                    } catch (DateTimeParseException e) {
+                        System.err.println("Format tanggal_batas tidak valid di DB: " + tanggalBatasStr + " untuk tugas id: " + rs.getInt("id"));
+                    }
+                }
+                
+                // PENYESUAIAN UNTUK SQLITE: INTEGER (0/1) -> boolean
+                boolean statusSelesai = (rs.getInt("selesai") == 1); 
+
                 Tugas tugas = new Tugas(
                         rs.getInt("id"),
-                        userId, // user_id sudah pasti sama dengan parameter
+                        rs.getInt("user_id"), // Ambil user_id dari ResultSet
                         rs.getString("judul"),
                         rs.getString("deskripsi"),
-                        tanggalBatas,
+                        tglBatasObj, 
                         rs.getString("kategori"),
                         rs.getString("lokasi"),
                         rs.getString("mata_kuliah"),
-                        rs.getBoolean("selesai")
+                        statusSelesai 
                 );
                 daftarTugasUser.add(tugas);
             }
         } catch (SQLException e) {
-            System.err.println("Error saat mengambil tugas user ID " + userId + ": " + e.getMessage());
+            System.err.println("Error SQL saat mengambil tugas user ID " + userId + ": " + e.getMessage());
             e.printStackTrace();
         } finally {
             DatabaseManager.closeResultSet(rs);
             DatabaseManager.closeStatement(pstmt);
-            if (closeConnHere) { // Hanya tutup koneksi jika dibuat di metode ini
+            if (closeConnHere) { 
                 DatabaseManager.closeConnection(conn);
             }
         }
         return daftarTugasUser;
     }
 
-    /**
-     * Mengambil tugas user yang sedang login, difilter berdasarkan kategori.
-     * @param kategoriFilter Nama kategori yang dicari. "Semua" akan mengambil semua kategori.
-     * @return List Tugas yang sudah difilter.
-     */
     public List<Tugas> getTugasCurrentUserByKategori(String kategoriFilter) {
         if (currentUser == null) {
             return new ArrayList<>();
         }
         if (kategoriFilter == null || kategoriFilter.equalsIgnoreCase("Semua") || kategoriFilter.trim().isEmpty()) {
-            return getTugasCurrentUser(); // Ambil semua tugas jika filter "Semua" atau kosong
+            return getTugasCurrentUser(); 
         }
 
         List<Tugas> daftarTugasUser = new ArrayList<>();
-        String sql = "SELECT id, judul, deskripsi, tanggal_batas, kategori, lokasi, mata_kuliah, selesai " +
+        String sql = "SELECT id, user_id, judul, deskripsi, tanggal_batas, kategori, lokasi, mata_kuliah, selesai " +
                      "FROM tasks WHERE user_id = ? AND kategori = ? ORDER BY tanggal_batas ASC, id DESC";
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -410,7 +422,10 @@ public class PengelolaTugas {
 
         try {
             conn = DatabaseManager.getConnection();
-            if (conn == null) return daftarTugasUser;
+            if (conn == null) {
+                System.err.println("Ambil tugas by kategori gagal: Tidak bisa mendapatkan koneksi database.");
+                return daftarTugasUser;
+            }
 
             pstmt = conn.prepareStatement(sql);
             pstmt.setInt(1, currentUser.getId());
@@ -418,24 +433,32 @@ public class PengelolaTugas {
             rs = pstmt.executeQuery();
 
             while (rs.next()) {
-                Timestamp ts = rs.getTimestamp("tanggal_batas");
-                LocalDateTime tanggalBatas = (ts != null) ? ts.toLocalDateTime() : null;
+                String tanggalBatasStr = rs.getString("tanggal_batas");
+                LocalDateTime tglBatasObj = null;
+                if (tanggalBatasStr != null && !tanggalBatasStr.isEmpty()) {
+                     try {
+                        tglBatasObj = LocalDateTime.parse(tanggalBatasStr);
+                    } catch (DateTimeParseException e) {
+                        System.err.println("Format tanggal_batas tidak valid di DB: " + tanggalBatasStr + " untuk tugas id: " + rs.getInt("id"));
+                    }
+                }
+                boolean statusSelesai = (rs.getInt("selesai") == 1);
+
                 Tugas tugas = new Tugas(
                         rs.getInt("id"),
-                        currentUser.getId(),
+                        rs.getInt("user_id"),
                         rs.getString("judul"),
                         rs.getString("deskripsi"),
-                        tanggalBatas,
+                        tglBatasObj,
                         rs.getString("kategori"),
                         rs.getString("lokasi"),
                         rs.getString("mata_kuliah"),
-                        rs.getBoolean("selesai")
+                        statusSelesai
                 );
                 daftarTugasUser.add(tugas);
             }
-            // Tidak perlu update currentUser.setDaftarTugas() di sini karena ini hanya view terfilter
         } catch (SQLException e) {
-            System.err.println("Error saat mengambil tugas berdasarkan kategori '" + kategoriFilter + "': " + e.getMessage());
+            System.err.println("Error SQL saat mengambil tugas berdasarkan kategori '" + kategoriFilter + "': " + e.getMessage());
             e.printStackTrace();
         } finally {
             DatabaseManager.closeResultSet(rs);
@@ -445,21 +468,16 @@ public class PengelolaTugas {
         return daftarTugasUser;
     }
 
-    /**
-     * Menghitung jumlah tugas per kategori untuk user yang sedang login.
-     * @return Map dengan Kategori sebagai key dan jumlah sebagai value.
-     */
     public Map<String, Long> rekapKategoriCurrentUser() {
         if (currentUser == null) {
             return new HashMap<>();
         }
-        // Ambil data terbaru dari DB untuk rekap
-        List<Tugas> tugasUserSaatIni = getTugasByUserId(currentUser.getId(), null);
+        List<Tugas> tugasUserSaatIni = getTugasByUserId(currentUser.getId(), null); // Ambil data terbaru
         if (tugasUserSaatIni.isEmpty()) {
             return new HashMap<>();
         }
         return tugasUserSaatIni.stream()
-                .filter(t -> t.getKategori() != null) // Hindari NullPointerException jika kategori bisa null
+                .filter(t -> t.getKategori() != null) 
                 .collect(Collectors.groupingBy(Tugas::getKategori, Collectors.counting()));
     }
 }
