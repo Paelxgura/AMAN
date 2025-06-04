@@ -4,9 +4,11 @@ import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert; // Import Alert
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
+import javafx.scene.control.TextField; // TextField di sini PasswordField akan lebih baik untuk password
+import javafx.scene.control.PasswordField; // Direkomendasikan untuk field password
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.Region;
@@ -23,6 +25,11 @@ import javafx.scene.shape.Rectangle;
 import tubes.launch.mainApp;
 
 public class LogInPage extends StackPane {
+
+    // Deklarasikan field input agar bisa diakses di event handler
+    private TextField unameField;
+    private TextField emailField; // Field ini tampaknya redundan untuk login jika unameField bisa untuk username/email
+    private PasswordField pwField; // Menggunakan PasswordField untuk keamanan
 
     public LogInPage (mainApp app) {
 
@@ -55,7 +62,7 @@ public class LogInPage extends StackPane {
         judul.setFont(Font.font("Candara Light", 40));
         judul.setTextFill(Color.WHITE);
 
-        Label unameLbl = new Label("Username:");
+        Label unameLbl = new Label("Username or e-Mail:"); // Mengubah label agar lebih jelas
         unameLbl.setFont(Font.font("Candara Light", 20));
         unameLbl.setTextFill(Color.WHITE);
 
@@ -63,11 +70,12 @@ public class LogInPage extends StackPane {
         pwLbl.setFont(Font.font("Candara Light", 20));
         pwLbl.setTextFill(Color.WHITE);
 
-        Label emailLbl = new Label("e-Mail:");
-        emailLbl.setFont(Font.font("Candara Light", 20));
-        emailLbl.setTextFill(Color.WHITE);
+        // Label emailLbl = new Label("e-Mail:"); // Label ini bisa dihapus jika emailField tidak digunakan untuk login
+        // emailLbl.setFont(Font.font("Candara Light", 20));
+        // emailLbl.setTextFill(Color.WHITE);
 
-        TextField unameField = new TextField();
+        unameField = new TextField(); // Inisialisasi field kelas
+        unameField.setPromptText("Enter your username or email");
         unameField.setPrefSize(500, 40);
         unameField.setStyle(
                 "-fx-background-color: rgb(0, 6, 18, 0.35);" +
@@ -78,18 +86,19 @@ public class LogInPage extends StackPane {
                         "-fx-font-size: 15px"
         );
 
-        TextField emailField = new TextField();
-        emailField.setPrefSize(500, 40);
-        emailField.setStyle(
-                "-fx-background-color: rgb(0, 6, 18, 0.35);" +
-                        "-fx-background-opacity: 0.35;" +
-                        "-fx-border-color: transparent;" +
-                        "-fx-border-radius: 5;" +
-                        "-fx-text-fill: rgb(193, 214, 200, 1);" +
-                        "-fx-font-size: 15px"
-        );
+        // emailField = new TextField(); // Jika emailField tetap ada, inisialisasi
+        // emailField.setPrefSize(500, 40);
+        // emailField.setStyle(
+        //         "-fx-background-color: rgb(0, 6, 18, 0.35);" +
+        //                 "-fx-background-opacity: 0.35;" +
+        //                 "-fx-border-color: transparent;" +
+        //                 "-fx-border-radius: 5;" +
+        //                 "-fx-text-fill: rgb(193, 214, 200, 1);" +
+        //                 "-fx-font-size: 15px"
+        // );
 
-        TextField pwField = new TextField();
+        pwField = new PasswordField(); // Inisialisasi field kelas
+        pwField.setPromptText("Enter your password");
         pwField.setPrefSize(500, 40);
         pwField.setStyle(
                 "-fx-background-color: rgb(0, 6, 18, 0.35);" +
@@ -124,9 +133,9 @@ public class LogInPage extends StackPane {
         unameLayout.getChildren().addAll(unameLbl, unameField);
         unameLayout.setAlignment(Pos.BOTTOM_LEFT);
 
-        VBox emailLayout = new VBox(5);
-        emailLayout.getChildren().addAll(emailLbl, emailField);
-        emailLayout.setAlignment(Pos.BOTTOM_LEFT);
+        // VBox emailLayout = new VBox(5); // Bisa dihapus jika emailField tidak digunakan
+        // emailLayout.getChildren().addAll(emailLbl, emailField);
+        // emailLayout.setAlignment(Pos.BOTTOM_LEFT);
 
         VBox pwLayout = new VBox(5);
         pwLayout.getChildren().addAll(pwLbl, pwField);
@@ -135,7 +144,7 @@ public class LogInPage extends StackPane {
         VBox VFieldLayout = new VBox(30);
         VFieldLayout.getChildren().addAll(
                 unameLayout,
-                emailLayout,
+                // emailLayout, // Hapus jika emailField tidak digunakan
                 pwLayout
         );
         VFieldLayout.setAlignment(Pos.CENTER);
@@ -182,10 +191,36 @@ public class LogInPage extends StackPane {
             app.switchSceneSignUpPage();
         });
 
+        // MODIFIED LOGIN BUTTON ACTION
         logInBtn.setOnAction(e -> {
-            app.switchSceneSchedulePage();
+            String usernameOrEmailInput = unameField.getText();
+            String passwordInput = pwField.getText();
+
+            if (usernameOrEmailInput.isEmpty() || passwordInput.isEmpty()) {
+                showAlert(Alert.AlertType.WARNING, "Input Kosong", "Username/Email dan Password tidak boleh kosong.");
+                return;
+            }
+
+            // Memanggil metode masukSistem dari PengelolaTugas
+            boolean loginSukses = app.getPengelolaTugas().masukSistem(usernameOrEmailInput, passwordInput);
+
+            if (loginSukses) {
+                // Jika login sukses, pindah ke halaman jadwal
+                app.switchSceneSchedulePage();
+            } else {
+                showAlert(Alert.AlertType.ERROR, "Login Gagal", "Username/Email atau Password salah. Silakan coba lagi.");
+                pwField.clear(); // Kosongkan field password setelah gagal login
+            }
         });
 
     }
 
+    // Metode bantuan untuk menampilkan Alert (bisa juga diletakkan di kelas utilitas)
+    private void showAlert(Alert.AlertType alertType, String title, String message) {
+        Alert alert = new Alert(alertType);
+        alert.setTitle(title);
+        alert.setHeaderText(null); // Tidak ada header text
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
 }
