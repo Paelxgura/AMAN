@@ -11,8 +11,8 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontPosture;
 import javafx.scene.text.FontWeight;
-import javafx.scene.text.TextAlignment; // Ditambahkan jika belum ada
-import tubes.backend.Tugas;
+import javafx.scene.text.TextAlignment;
+import tubes.backend.Tugas; // Pastikan import Tugas ada
 import tubes.launch.mainApp;
 
 import java.time.LocalDate;
@@ -21,6 +21,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Optional;
 
 public class EditSchedule extends StackPane {
 
@@ -34,19 +35,19 @@ public class EditSchedule extends StackPane {
     private DatePicker tanggalDP;
     private TextField waktuField;
     private TextField deskripsiField;
-    // Tambahkan field UI lain jika ada, misal untuk lokasi atau mata kuliah
+    // Tambahkan field untuk lokasi dan mata kuliah jika diperlukan
 
-    // KONSTRUKTOR YANG DIPERBARUI
-    public EditSchedule(mainApp app, Tugas tugas) { // Terima mainApp dan Tugas
+    // Konstruktor yang mendukung mode BUAT BARU dan EDIT
+    public EditSchedule(mainApp app, Tugas tugas) {
         this.app = app;
-        this.tugasToEdit = tugas; // Ini bisa null jika membuat tugas baru
+        this.tugasToEdit = tugas; // Simpan tugas yang akan diedit (bisa null)
 
         // Background
         String backgroundString = getClass().getResource("/Background.png").toString();
         ImageView backgroundImage = new ImageView(new Image(backgroundString));
 
         // TOP
-        this.topLbl = new Label(); // Inisialisasi field kelas
+        this.topLbl = new Label(); // Label judul halaman
         this.topLbl.setFont(Font.font("Franklin Gothic Heavy", FontWeight.BOLD, FontPosture.ITALIC, 90));
         this.topLbl.setTextFill(Color.rgb(193, 214, 200, 1));
         this.topLbl.setTextAlignment(TextAlignment.CENTER);
@@ -57,12 +58,12 @@ public class EditSchedule extends StackPane {
         Rectangle persegi = new Rectangle(1400, 600);
         persegi.setStyle(
                 "-fx-fill: #FFFFFF;" +
-                "-fx-opacity: 0.35;" +
-                "-fx-arc-width: 25;" + // Koreksi typo (Width -> width)
-                "-fx-arc-height: 25;" // Koreksi typo (Height -> height)
+                        "-fx-opacity: 0.35;" +
+                        "-fx-arc-width: 25;" + // Koreksi Width -> width
+                        "-fx-arc-height: 25;" // Koreksi Height -> height
         );
 
-        // LABELS (bisa tetap variabel lokal jika tidak diakses di luar konstruktor)
+        // LABELS
         Label namaKegiatanLbl = new Label("NAMA KEGIATAN");
         namaKegiatanLbl.setFont(Font.font("Segoe UI", 20));
         namaKegiatanLbl.setTextFill(Color.rgb(1, 47, 16, 1));
@@ -83,14 +84,12 @@ public class EditSchedule extends StackPane {
         deskripsiLbl.setFont(Font.font("Segoe UI", 20));
         deskripsiLbl.setTextFill(Color.rgb(1, 47, 16, 1));
 
-        // FIELDS (inisialisasi field kelas)
+        // FIELDS
         this.namaKegiatanField = new TextField();
         this.namaKegiatanField.setPrefSize(900, 40);
         this.namaKegiatanField.setStyle(
                 "-fx-background-color: rgb(0, 6, 18, 0.35);" +
-                "-fx-background-opacity: 0.35;" +
-                "-fx-border-color: transparent;" +
-                "-fx-border-radius: 5;" +
+                // ... (style lainnya) ...
                 "-fx-text-fill: rgb(193, 214, 200, 1);" +
                 "-fx-font-size: 15px"
         );
@@ -98,56 +97,42 @@ public class EditSchedule extends StackPane {
         ArrayList<String> kategoriItems = new ArrayList<>();
         kategoriItems.add("AKADEMIK");
         kategoriItems.add("NON-AKADEMIK");
-        // Anda bisa menambahkan kategori lain di sini jika perlu
 
         this.kategoriCB = new ComboBox<>();
         this.kategoriCB.getItems().addAll(kategoriItems);
         this.kategoriCB.setPrefSize(900, 40);
         this.kategoriCB.setStyle(
-                "-fx-background-color: rgb(0, 6, 18, 0.35);" +
-                "-fx-background-opacity: 0.35;" +
-                "-fx-border-color: transparent;" +
-                "-fx-border-radius: 5;" +
-                // Untuk ComboBox, warna teks item dan teks terpilih mungkin memerlukan styling lebih lanjut
-                // via CSS atau setCellFactory dan setButtonCell jika ingin kustomisasi penuh.
-                // "-fx-text-fill: rgb(193, 214, 200, 1);" // Ini mungkin tidak berpengaruh banyak di ComboBox
+                 "-fx-background-color: rgb(0, 6, 18, 0.35);" +
+                // ... (style lainnya) ...
+                // Warna teks di ComboBox mungkin perlu penyesuaian lebih lanjut via CSS
                 "-fx-font-size: 15px"
         );
-        // Pastikan ComboBox menampilkan teks dengan warna yang terlihat pada background gelapnya
 
 
         this.deskripsiField = new TextField();
         this.deskripsiField.setPrefSize(900, 40);
-        this.deskripsiField.setStyle(
+         this.deskripsiField.setStyle(
                 "-fx-background-color: rgb(0, 6, 18, 0.35);" +
-                "-fx-background-opacity: 0.35;" +
-                "-fx-border-color: transparent;" +
-                "-fx-border-radius: 5;" +
+                // ... (style lainnya) ...
                 "-fx-text-fill: rgb(193, 214, 200, 1);" +
                 "-fx-font-size: 15px"
         );
+
 
         this.tanggalDP = new DatePicker();
         this.tanggalDP.setPrefSize(900, 40);
         this.tanggalDP.setStyle(
                 "-fx-background-color: rgb(0, 6, 18, 0.35);" +
-                "-fx-background-opacity: 0.35;" +
-                "-fx-border-color: transparent;" +
-                "-fx-border-radius: 5;" +
-                // "-fx-text-fill: rgb(193, 214, 200, 1);" // Warna teks di DatePicker juga diatur oleh tema/CSS internal
+                // ... (style lainnya) ...
                 "-fx-font-size: 15px"
         );
-        // Untuk DatePicker, warna teks juga bisa diatur lebih detail melalui CSS
-
 
         this.waktuField = new TextField();
-        this.waktuField.setPromptText("HH:mm (contoh: 14:30)"); // Memberi petunjuk format
+        this.waktuField.setPromptText("HH:mm (contoh: 14:30)");
         this.waktuField.setPrefSize(900, 40);
         this.waktuField.setStyle(
                 "-fx-background-color: rgb(0, 6, 18, 0.35);" +
-                "-fx-background-opacity: 0.35;" +
-                "-fx-border-color: transparent;" +
-                "-fx-border-radius: 5;" +
+                // ... (style lainnya) ...
                 "-fx-text-fill: rgb(193, 214, 200, 1);" +
                 "-fx-font-size: 15px"
         );
@@ -156,14 +141,13 @@ public class EditSchedule extends StackPane {
         if (this.tugasToEdit != null) {
             this.topLbl.setText("EDIT JADWAL"); // Ubah judul halaman
             this.namaKegiatanField.setText(this.tugasToEdit.getJudul());
-            this.kategoriCB.setValue(this.tugasToEdit.getKategori()); // Pastikan kategori ada di ComboBox
+            this.kategoriCB.setValue(this.tugasToEdit.getKategori());
             if (this.tugasToEdit.getTanggalBatas() != null) {
                 this.tanggalDP.setValue(this.tugasToEdit.getTanggalBatas().toLocalDate());
                 this.waktuField.setText(this.tugasToEdit.getTanggalBatas().toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")));
             }
             this.deskripsiField.setText(this.tugasToEdit.getDeskripsi());
-            // TODO: Jika ada field untuk lokasi, mata kuliah, isi juga di sini
-            // Contoh: if (this.lokasiField != null) this.lokasiField.setText(this.tugasToEdit.getLokasi());
+            // TODO: Isi field lokasi dan mata kuliah jika ada
         } else {
             this.topLbl.setText("MASUKKAN JADWAL BARU"); // Judul untuk jadwal baru
         }
@@ -184,69 +168,56 @@ public class EditSchedule extends StackPane {
         inputGridPane.add(this.waktuField, 1, 3);
         inputGridPane.add(deskripsiLbl, 0, 4);
         inputGridPane.add(this.deskripsiField, 1, 4);
-        // TODO: Tambahkan baris untuk Lokasi dan Mata Kuliah jika ada field inputnya
+        // TODO: Tambahkan baris untuk Lokasi dan Mata Kuliah jika ada
 
         // TOMBOL
         Button batalBtn = new Button("BATAL");
         batalBtn.setStyle(
-                "-fx-background-color: rgb(1, 47, 16, 1);" +
-                "-fx-border-color: transparent;" +
-                "-fx-text-fill: rgb(193, 214, 200, 1);" +
-                "-fx-font-size: 20px;" +
-                "-fx-cursor: hand;" +
-                "-fx-font-weight: BOLD;" +
-                "-fx-background-radius: 50;"
-        );
+        "-fx-background-color: rgb(1, 47, 16, 1);" +
+        "-fx-border-color: transparent;" +
+        "-fx-text-fill: rgb(193, 214, 200, 1);" +
+        "-fx-font-size: 20px;" +
+        "-fx-cursor: hand;" +
+        "-fx-font-weight: BOLD;" +
+        "-fx-background-radius: 50;"
+);
+
         batalBtn.setPrefSize(200, 40);
-        // Penempatan tombol dengan translate mungkin perlu penyesuaian atau dilakukan dengan layout manager yang lebih baik
-        // Untuk sekarang kita biarkan, tapi idealnya gunakan HBox atau VBox di dalam BorderPane.
-        batalBtn.setTranslateY(300);
-        batalBtn.setTranslateX(-120);
 
         Button simpanBtn = new Button("SIMPAN");
         simpanBtn.setStyle(
-                "-fx-background-color: rgb(1, 47, 16, 1);" +
-                "-fx-border-color: transparent;" +
-                "-fx-text-fill: rgb(193, 214, 200, 1);" +
-                "-fx-font-size: 20px;" +
-                "-fx-cursor: hand;" +
-                "-fx-font-weight: BOLD;" +
-                "-fx-background-radius: 50;"
-        );
+        "-fx-background-color: rgb(1, 47, 16, 1);" +
+        "-fx-border-color: transparent;" +
+        "-fx-text-fill: rgb(193, 214, 200, 1);" +
+        "-fx-font-size: 20px;" +
+        "-fx-cursor: hand;" +
+        "-fx-font-weight: BOLD;" +
+        "-fx-background-radius: 50;"
+       );
         simpanBtn.setPrefSize(200, 40);
-        simpanBtn.setTranslateY(300);
-        simpanBtn.setTranslateX(120);
+        // simpanBtn.setTranslateY(300); // Sebaiknya gunakan layout manager
+        // simpanBtn.setTranslateX(120);
 
         // LAYOUT UTAMA
-        StackPane inputCard = new StackPane(); // Ini membungkus persegi dan grid input
+        StackPane inputCard = new StackPane();
         inputCard.getChildren().addAll(persegi, inputGridPane);
 
-        // Kontainer untuk tombol agar posisinya lebih teratur relatif terhadap inputCard
-        // Jika ingin tombol di bawah inputCard, bisa gunakan VBox atau BorderPane.setBottom
-        // Untuk sementara, kita letakkan tombol di atas inputCard dalam StackPane utama halaman ini
-        // karena `EditSchedule extends StackPane`. Perlu hati-hati agar tombol tidak menutupi input.
-        // Jika `batalBtn` dan `simpanBtn` diletakkan di `stackPane` asli, mereka akan di tengah.
-        // Mungkin lebih baik membuat HBox untuk tombol dan meletakkannya di bawah inputCard
-        // dalam sebuah VBox yang menjadi child dari BorderPane.
-
-        // Menggunakan BorderPane untuk struktur halaman yang lebih baik
-        BorderPane contentPane = new BorderPane();
-        contentPane.setCenter(inputCard);
-
-        // HBox untuk tombol-tombol agar berdampingan
-        HBox tombolBox = new HBox(20, batalBtn, simpanBtn); // 20 adalah spasi antar tombol
+        // Kontainer untuk tombol agar posisinya lebih teratur
+        HBox tombolBox = new HBox(40, batalBtn, simpanBtn); // Spasi antar tombol
         tombolBox.setAlignment(Pos.CENTER);
-        tombolBox.setPadding(new Insets(0, 0, 50, 0)); // Padding bawah untuk tombol
+        tombolBox.setPadding(new Insets(30, 0, 0, 0)); // Padding atas untuk tombol
 
-        contentPane.setBottom(tombolBox); // Letakkan tombol di bawah input card
+        VBox centerContentVBox = new VBox(20, inputCard, tombolBox); // Gabungkan input card dan tombol
+        centerContentVBox.setAlignment(Pos.CENTER);
+
 
         BorderPane borderPane1 = new BorderPane();
         borderPane1.setTop(topLblWrapper);
-        borderPane1.setCenter(contentPane); // Ganti stackPane dengan contentPane
+        borderPane1.setCenter(centerContentVBox); // Gunakan VBox yang sudah berisi tombol
         borderPane1.setPadding(new Insets(20));
 
         // BACKGROUND + LAYOUT
-        this.getChildren().addAll(backgroundImage, borderPane1); // 'this' adalah StackPane root
+        this.getChildren().addAll(backgroundImage, borderPane1);
 
         // ADJUST BACKGROUND
         backgroundImage.fitHeightProperty().bind(this.heightProperty());
@@ -254,7 +225,14 @@ public class EditSchedule extends StackPane {
 
         // BUTTON ACTION
         batalBtn.setOnAction(e -> {
-            this.app.switchSceneSchedulePage();
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Konfirmasi Batal");
+            alert.setHeaderText("Anda yakin ingin membatalkan?");
+            alert.setContentText(this.tugasToEdit != null ? "Perubahan tidak akan disimpan." : "Jadwal baru tidak akan dibuat.");
+            Optional<ButtonType> result = alert.showAndWait();
+            if (result.isPresent() && result.get() == ButtonType.OK) {
+                this.app.switchSceneSchedulePage();
+            }
         });
 
         simpanBtn.setOnAction(e -> {
@@ -269,7 +247,7 @@ public class EditSchedule extends StackPane {
         LocalDate tanggal = this.tanggalDP.getValue();
         String waktuText = this.waktuField.getText();
         String deskripsi = this.deskripsiField.getText();
-        // TODO: Ambil nilai dari field lokasi dan mata kuliah jika sudah Anda tambahkan
+        // TODO: Ambil nilai dari field lokasi dan mata kuliah jika ada
 
         // Validasi Input Dasar
         if (namaKegiatan == null || namaKegiatan.trim().isEmpty()) {
@@ -295,8 +273,10 @@ public class EditSchedule extends StackPane {
                 return;
             }
         } else {
-            // Jika waktu tidak diisi, default ke awal hari (00:00)
-            tanggalBatasGabungan = LocalDateTime.of(tanggal, LocalTime.MIDNIGHT);
+            // Jika waktu tidak diisi, default ke awal hari (00:00) atau bisa juga error
+            showAlert(Alert.AlertType.WARNING, "Input Tidak Lengkap", "Waktu harus diisi.");
+            return;
+            // atau: tanggalBatasGabungan = LocalDateTime.of(tanggal, LocalTime.MIDNIGHT);
         }
 
         boolean sukses;
@@ -304,34 +284,43 @@ public class EditSchedule extends StackPane {
         String lokasiInput = "Belum Diisi"; // Contoh, ambil dari TextField lokasiField jika ada
         String mataKuliahInput = ""; // Contoh, ambil dari TextField mataKuliahField jika ada
 
-        if (tugasToEdit == null) { // Mode: Membuat tugas baru
-            Tugas tugasBaruHasil = this.app.getPengelolaTugas().buatTugas(
-                namaKegiatan,
-                deskripsi,
-                tanggalBatasGabungan,
-                kategori,
-                lokasiInput,
-                mataKuliahInput
-            );
-            sukses = (tugasBaruHasil != null);
-        } else { // Mode: Mengedit tugas yang ada
-            sukses = this.app.getPengelolaTugas().ubahTugas(
-                tugasToEdit.getId(),
-                namaKegiatan,
-                deskripsi,
-                tanggalBatasGabungan,
-                kategori,
-                lokasiInput,
-                mataKuliahInput,
-                tugasToEdit.isSelesai() // Pertahankan status selesai, atau ambil dari UI jika ada CheckBox
-            );
-        }
+        // Konfirmasi sebelum menyimpan
+        Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmAlert.setTitle("Konfirmasi Simpan");
+        confirmAlert.setHeaderText("Anda yakin ingin menyimpan jadwal ini?");
+        confirmAlert.setContentText("Pastikan semua data sudah benar.");
 
-        if (sukses) {
-            showAlert(Alert.AlertType.INFORMATION, "Sukses", "Data jadwal berhasil disimpan.");
-            this.app.switchSceneSchedulePage();
-        } else {
-            showAlert(Alert.AlertType.ERROR, "Gagal", "Gagal menyimpan data jadwal. Periksa konsol untuk detail error.");
+        Optional<ButtonType> result = confirmAlert.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            if (tugasToEdit == null) { // Mode: Membuat tugas baru
+                Tugas tugasBaruHasil = this.app.getPengelolaTugas().buatTugas(
+                    namaKegiatan,
+                    deskripsi,
+                    tanggalBatasGabungan,
+                    kategori,
+                    lokasiInput, // Ganti dengan input field lokasi jika ada
+                    mataKuliahInput // Ganti dengan input field matkul jika ada
+                );
+                sukses = (tugasBaruHasil != null);
+            } else { // Mode: Mengedit tugas yang ada
+                sukses = this.app.getPengelolaTugas().ubahTugas(
+                    tugasToEdit.getId(),
+                    namaKegiatan,
+                    deskripsi,
+                    tanggalBatasGabungan,
+                    kategori,
+                    lokasiInput, // Ganti dengan input field lokasi jika ada
+                    mataKuliahInput, // Ganti dengan input field matkul jika ada
+                    tugasToEdit.isSelesai() // Pertahankan status selesai, atau ambil dari UI jika ada CheckBox
+                );
+            }
+
+            if (sukses) {
+                showAlert(Alert.AlertType.INFORMATION, "Sukses", "Data jadwal berhasil disimpan.");
+                this.app.switchSceneSchedulePage(); // Kembali ke halaman jadwal
+            } else {
+                showAlert(Alert.AlertType.ERROR, "Gagal", "Gagal menyimpan data jadwal. Periksa konsol untuk detail error.");
+            }
         }
     }
 

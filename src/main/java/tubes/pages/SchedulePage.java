@@ -12,7 +12,9 @@ import javafx.scene.text.FontPosture;
 import javafx.scene.text.FontWeight;
 import tubes.launch.mainApp;
 
+import java.nio.file.StandardWatchEventKinds;
 import java.util.ArrayList;
+import java.util.Stack;
 
 public class SchedulePage extends StackPane {
 
@@ -95,6 +97,17 @@ public class SchedulePage extends StackPane {
         scrollVBox.setPadding(new Insets(10));
         scrollVBox.getChildren().add(scrollPane);
 
+        Button addScheduleBtn = new Button("+");
+        addScheduleBtn.setStyle("""
+                -fx-background-color: #68AE5A;
+                -fx-text-fill: #FFFFFF;
+                -fx-font-size: 40px;
+                -fx-background-radius: 100px;
+                -fx-cursor: hand;
+                -fx-font-weight: bold;
+        """);
+        addScheduleBtn.setPrefSize(100,100);
+
         StackPane stackPane = new StackPane();
         stackPane.getChildren().addAll(persegi, scrollVBox);
 
@@ -102,8 +115,14 @@ public class SchedulePage extends StackPane {
         mainBorderPane.setTop(topHBox);
         mainBorderPane.setBottom(stackPane);
 
+        StackPane main = new StackPane();
+        main.getChildren().addAll(mainBorderPane, addScheduleBtn);
+
+        StackPane.setAlignment(addScheduleBtn, Pos.BOTTOM_RIGHT);
+        StackPane.setMargin(addScheduleBtn, new Insets(20));
+
         // Background + Layout
-        this.getChildren().addAll(backgroundImage, mainBorderPane);
+        this.getChildren().addAll(backgroundImage, main);
 
         // ADJUST BACKGROUND
         backgroundImage.fitWidthProperty().bind(this.widthProperty());
@@ -111,6 +130,10 @@ public class SchedulePage extends StackPane {
 
         keluarBtn.setOnAction(e -> {
             app.switchSceneWelcomePage();
+        });
+
+        addScheduleBtn.setOnAction(e -> {
+            app.switchSceneEditSchedulePage();
         });
 
     }
